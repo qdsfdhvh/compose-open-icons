@@ -1,3 +1,4 @@
+import com.vanniktech.maven.publish.SonatypeHost
 import de.undercouch.gradle.tasks.download.Download
 
 plugins {
@@ -5,16 +6,23 @@ plugins {
     kotlin("plugin.compose") version "2.1.0"
     id("org.jetbrains.compose") version "1.7.3"
     id("de.undercouch.download") version "5.6.0"
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
-
-group = "io.github.qdsfdhvh.iconpark-outline-3dp"
-version = "1.0.0"
 
 kotlin {
     jvm()
     iosX64()
     iosArm64()
     iosSimulatorArm64()
+    macosX64()
+    macosArm64()
+    js {
+        browser()
+    }
+    @Suppress("OPT_IN_USAGE")
+    wasmJs {
+        browser()
+    }
     sourceSets {
         commonMain {
             kotlin.srcDir("build/generated/valkyrie/commonMain/kotlin")
@@ -110,4 +118,9 @@ abstract class GenerateIconParkCodes : DefaultTask() {
             )
         }
     }
+}
+
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.S01, automaticRelease = true)
+    signAllPublications()
 }
