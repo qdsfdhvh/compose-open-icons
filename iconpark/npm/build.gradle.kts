@@ -16,7 +16,7 @@ val downloadIconParkIcons by tasks.register<NodeTask>("downloadIconParkIcons") {
     script = file("export-icons.js")
     args.set(
         listOf(
-            "--output",     project(":iconpark").layout.buildDirectory.dir("icons/iconpark/outline").get().asFile.absolutePath,
+            "--output", project(":iconpark").layout.buildDirectory.dir("icons/iconpark/outline").get().asFile.absolutePath,
             "--theme", "outline",
             "--strokeWidth", "3",
         )
