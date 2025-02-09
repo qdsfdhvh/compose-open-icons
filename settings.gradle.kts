@@ -30,3 +30,6 @@ plugins {
 }
 
 rootProject.name = "compose-open-icons"
+
+include(":iconpark")
+include(":iconpark:npm")
