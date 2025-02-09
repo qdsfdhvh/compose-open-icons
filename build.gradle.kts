@@ -7,8 +7,8 @@ plugins {
     id("de.undercouch.download") version "5.6.0"
 }
 
-group = "io.github.qdsfdhvh.iconpark"
-version = "1.0-SNAPSHOT"
+group = "io.github.qdsfdhvh.iconpark-outline-3dp"
+version = "1.0.0"
 
 kotlin {
     jvm()
@@ -20,7 +20,6 @@ kotlin {
             kotlin.srcDir("build/generated/valkyrie/commonMain/kotlin")
             dependencies {
                 implementation(compose.ui)
-                implementation(compose.materialIconsExtended)
             }
         }
     }
@@ -29,22 +28,6 @@ kotlin {
 
 val iconParkVersion = "1.4.2"
 val valkyrieVersion = "0.11.1"
-
-val downloadIconParkIcons by tasks.register<Download>("downloadIconParkIcons") {
-    group = "icons"
-    description = "Downloads the icons for park."
-    src("https://github.com/bytedance/IconPark/archive/refs/tags/v${iconParkVersion}.zip")
-    dest(layout.buildDirectory)
-    overwrite(false)
-}
-
-val unzipIconParkIcons by tasks.register<Copy>("unzipIconParkIcons") {
-    dependsOn(downloadIconParkIcons)
-    group = "icons"
-    description = "Unpacks the icons for park."
-    from(zipTree(layout.buildDirectory.file("IconPark-${iconParkVersion}.zip")))
-    into(layout.buildDirectory)
-}
 
 val downloadValkyrieCli by tasks.register<Download>("downloadValkyrieCli") {
     group = "icons"
@@ -62,25 +45,37 @@ val unzipValkyrieCli by tasks.register<Copy>("unzipValkyrieCli") {
     into(layout.buildDirectory)
 }
 
+val downloadIconParkIcons by tasks.register<Exec>("downloadIconParkIcons") {
+    group = "icons"
+    description = "Formats the icons for park."
+    commandLine(
+        "node", "export-icons.js",
+        "--output", layout.buildDirectory.dir("iconpark-${iconParkVersion}/outline").get().asFile.absolutePath,
+        "--theme", "outline",
+        "--strokeWidth", "3",
+    )
+}
 
 val generateIconParkCodes by tasks.register<GenerateIconParkCodes>("generateIconParkCodes") {
-    dependsOn(unzipIconParkIcons)
     dependsOn(unzipValkyrieCli)
+    dependsOn(downloadIconParkIcons)
     group = "icons"
     description = "Generates the icons for park."
 
     shellPath = layout.buildDirectory.file("bin/valkyrie")
-    sourceDir = layout.buildDirectory.dir("IconPark-${iconParkVersion}/source")
+    inputDir = layout.buildDirectory.dir("iconpark-${iconParkVersion}/outline")
     outputDir = layout.buildDirectory.dir("generated/valkyrie/commonMain/kotlin")
     packageName = "io.github.qdsfdhvh.iconpark"
+    iconPackName = "IconParkIcons"
+    nestedPackName = "Outline"
 }
 
+tasks["compileKotlinMetadata"].dependsOn(generateIconParkCodes)
+
 abstract class GenerateIconParkCodes : DefaultTask() {
-    @get:Inject
-    abstract val workerExecutor: WorkerExecutor
 
     @get:InputDirectory
-    abstract val sourceDir: DirectoryProperty
+    abstract val inputDir: DirectoryProperty
 
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
@@ -91,67 +86,28 @@ abstract class GenerateIconParkCodes : DefaultTask() {
     @get:Input
     abstract val packageName: Property<String>
 
-    @TaskAction
-    fun run() {
-        val childrenFileLists = sourceDir.get().asFile.listFiles()
+    @get:Input
+    abstract val iconPackName: Property<String>
 
-        val codesDir = outputDir.dir(packageName.get().replace(".", "/"))
-
-        val childObjectNames = ArrayList<String>()
-        childrenFileLists.forEach { file ->
-            if (file.isDirectory) {
-                childObjectNames.add(file.name)
-                workerExecutor.noIsolation().submit(GenerateIconWorker::class.java) {
-                    inputPath.set(file)
-                    outputPath.set(codesDir)
-                    shellPath.set(this@GenerateIconParkCodes.shellPath)
-                    finalPackageName.set(this@GenerateIconParkCodes.packageName)
-                }
-            }
-        }
-
-        val generatedCode = """
-            |package ${packageName.get()}
-            |
-            |object IconPark {
-            |${childObjectNames.joinToString("\n") { "    object $it" }}
-            |}
-        """.trimMargin()
-        val file = codesDir.get().file("IconPark.kt").asFile
-        file.parentFile.mkdirs()
-        file.writeText(generatedCode)
-
-        workerExecutor.await()
-    }
-}
-
-abstract class GenerateIconWorker : WorkAction<GenerateIconWorker.Parameters> {
-    interface Parameters : WorkParameters {
-        val shellPath: RegularFileProperty
-        val inputPath: Property<File>
-        val outputPath: DirectoryProperty
-        val finalPackageName: Property<String>
-    }
+    @get:Input
+    abstract val nestedPackName: Property<String>
 
     @get:Inject
     abstract val execOperations: ExecOperations
 
-    override fun execute() {
-        val shellPath = parameters.shellPath.orNull
-        val inputPath = parameters.inputPath.get()
-        val outputPath = parameters.outputPath.get()
-        val packageName = parameters.finalPackageName.get()
+    @TaskAction
+    fun run() {
+        val codesDir = outputDir.dir(packageName.get().replace(".", "/"))
         execOperations.exec {
             commandLine(
-                shellPath,
+                shellPath.get().asFile.absolutePath,
                 "svgxml2imagevector",
-                "--input-path=${inputPath.absolutePath}",
-                "--output-path=${outputPath.asFile.absolutePath}",
-                "--package-name=${packageName}",
-                "--iconpack-name=IconPark",
-                "--nested-pack-name=${inputPath.name}",
+                "--input-path=${inputDir.get().asFile.absolutePath}",
+                "--output-path=${codesDir.get().asFile.absolutePath}",
+                "--package-name=${packageName.get()}",
+                "--iconpack-name=${iconPackName.get()}",
+                "--nested-pack-name=${nestedPackName.get()}",
             )
         }
     }
 }
-
