@@ -4,5 +4,5 @@
 import SwiftUI
 
 #Preview {
-    Image(.addSymbol)
+    IconParkSymbols.Add.image
 }
