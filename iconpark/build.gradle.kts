@@ -1,5 +1,4 @@
 import de.undercouch.gradle.tasks.download.Download
-import kotlin.jvm.java
 
 plugins {
     kotlin("multiplatform")
