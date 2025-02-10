@@ -1,4 +1,5 @@
 import de.undercouch.gradle.tasks.download.Download
+import org.jetbrains.kotlin.utils.addToStdlib.assertedCast
 
 plugins {
     kotlin("multiplatform")
@@ -117,60 +118,106 @@ abstract class GenerateIconParkCodes : DefaultTask() {
     }
 }
 
-// val generateIconParkSwiftCodes by tasks.register<GenerateIconParkSwiftCodes>("generateIconParkSwiftCodes") {
-//     inputDir = layout.buildDirectory.dir("icons/iconpark/outline")
-//     outputDir = project.file("Resources")
-// }
-//
-// abstract class GenerateIconParkSwiftCodes : DefaultTask() {
-//     @get:InputDirectory
-//     abstract val inputDir: DirectoryProperty
-//
-//     @get:OutputDirectory
-//     abstract val outputDir: DirectoryProperty
-//
-//     @get:Inject
-//     abstract val workerExecutor: WorkerExecutor
-//
-//     @TaskAction
-//     fun run() {
-//         if (!outputDir.get().asFile.exists()) {
-//             outputDir.get().asFile.mkdirs()
-//         }
-//
-//         val childrenFileLists = inputDir.get().asFile.listFiles()
-//         childrenFileLists?.forEach { file ->
-//             if (file.isFile) {
-//                 workerExecutor.noIsolation().submit(GenerateSwiftIconWorker::class.java) {
-//                     inputPath.set(file)
-//                     outputPath.set(outputDir)
-//                 }
-//             }
-//         }
-//     }
-// }
-//
-// abstract class GenerateSwiftIconWorker : WorkAction<GenerateSwiftIconWorker.Parameters> {
-//     interface Parameters : WorkParameters {
-//         val inputPath: Property<File>
-//         val outputPath: DirectoryProperty
-//     }
-//
-//     @get:Inject
-//     abstract val execOperations: ExecOperations
-//
-//     override fun execute() {
-//         val inputPath = parameters.inputPath.get()
-//         val outputPath = parameters.outputPath.get()
-//
-//         println("Convert ${inputPath.absolutePath} to $outputPath")
-//
-//         execOperations.exec {
-//             commandLine(
-//                 "swiftdraw", inputPath.absolutePath,
-//                 "--format", "sfsymbol",
-//                 ">", "$outputPath"
-//             )
-//         }
-//     }
-// }
+val generateIconParkSwiftCodes by tasks.register<GenerateIconParkSwiftCodes>("generateIconParkSwiftCodes") {
+    inputDir = layout.buildDirectory.dir("icons/iconpark/outline")
+    outputDir = project.file("Sources/iconpark/Resources/Media.xcassets/")
+    warningLogDir = projectDir
+}
+
+abstract class GenerateIconParkSwiftCodes : DefaultTask() {
+    @get:InputDirectory
+    abstract val inputDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val warningLogDir: DirectoryProperty
+
+    @get:Inject
+    abstract val workerExecutor: WorkerExecutor
+
+    @TaskAction
+    fun run() {
+        val workQueue = workerExecutor.noIsolation()
+
+        if (!outputDir.get().asFile.exists()) {
+            outputDir.get().asFile.mkdirs()
+        }
+
+        val waringCollectDir = warningLogDir.dir(".warnings").get().asFile
+        if (waringCollectDir.exists()) {
+            waringCollectDir.deleteRecursively()
+        } else {
+            waringCollectDir.mkdirs()
+        }
+
+        val childrenFileLists = inputDir.get().asFile.listFiles()
+        childrenFileLists?.forEach { file ->
+            if (file.isFile && file.name.endsWith(".svg")) {
+                workQueue.submit(GenerateSwiftIconWorker::class.java) {
+                    inputPath.set(file)
+                    outputPath.set(outputDir)
+                    waringDir.set(waringCollectDir)
+                }
+            }
+        }
+
+        workQueue.await()
+
+        val warningFile = warningLogDir.get().file("Warning.txt").asFile
+        if (warningFile.exists()) {
+            warningFile.delete()
+        }
+        warningFile.createNewFile()
+
+        warningFile.bufferedWriter().use {
+            waringCollectDir.listFiles()?.forEach { file ->
+                it.appendLine(file.readText())
+            }
+            waringCollectDir.deleteRecursively()
+        }
+    }
+}
+
+abstract class GenerateSwiftIconWorker : WorkAction<GenerateSwiftIconWorker.Parameters> {
+    interface Parameters : WorkParameters {
+        val inputPath: Property<File>
+        val outputPath: DirectoryProperty
+        val waringDir: DirectoryProperty
+    }
+
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
+    override fun execute() {
+        val inputPath = parameters.inputPath.get()
+
+        val svgName = inputPath.name.removeSuffix(".svg")
+
+        // swiftdraw not support create parent dir
+        val outputDir = parameters.outputPath.dir("${svgName}-symbol.symbolset").get().asFile
+        if (!outputDir.exists()) {
+            outputDir.mkdirs()
+        }
+
+        println("Convert ${inputPath.absolutePath} to $outputDir")
+
+        val result = execOperations.exec {
+            commandLine(
+                "swiftdraw", inputPath.absolutePath,
+                "--format", "sfsymbol",
+                "--output", outputDir.resolve("${svgName}-symbol.svg").absolutePath,
+            )
+            isIgnoreExitValue = true
+        }
+
+        if (result.exitValue != 0) {
+            val logFile = parameters.waringDir.get().file(svgName).asFile
+            logFile.createNewFile()
+            logFile.bufferedWriter().use {
+                it.write("Can't Convert $svgName")
+            }
+        }
+    }
+}
