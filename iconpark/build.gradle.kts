@@ -120,7 +120,7 @@ abstract class GenerateIconParkCodes : DefaultTask() {
 
 val generateIconParkSwiftCodes by tasks.register<GenerateIconParkSwiftCodes>("generateIconParkSwiftCodes") {
     inputDir = layout.buildDirectory.dir("icons/IconPark/outline")
-    outputDir = project.file("spm/Sources/IconPark/Resources/Media.xcassets/")
+    outputDir = project.file("spm/Resources/Media.xcassets/")
     warningLogDir = projectDir
 }
 

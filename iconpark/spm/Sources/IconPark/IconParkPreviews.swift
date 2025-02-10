@@ -4,5 +4,5 @@
 import SwiftUI
 
 #Preview {
-   Image(.addSymbol)
+    Image(.addSymbol)
 }
