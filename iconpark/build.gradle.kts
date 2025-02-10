@@ -3,12 +3,14 @@ import de.undercouch.gradle.tasks.download.Download
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.compose") version "2.0.0"
+    id("com.android.library")
     id("org.jetbrains.compose") version "1.7.3"
     id("de.undercouch.download") version "5.6.0"
     id("com.vanniktech.maven.publish")
 }
 
 kotlin {
+    androidTarget()
     jvm()
     iosX64()
     iosArm64()
@@ -31,6 +33,14 @@ kotlin {
         }
     }
     jvmToolchain(11)
+}
+
+android {
+    namespace = "io.github.qdsfdhvh.iconpark"
+    compileSdk = 34
+    defaultConfig {
+        minSdk = 21
+    }
 }
 
 val valkyrieVersion = "0.11.1"
