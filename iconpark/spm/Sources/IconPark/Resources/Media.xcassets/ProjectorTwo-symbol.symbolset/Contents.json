@@ -1,0 +1,12 @@
+{
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "symbols" : [
+    {
+      "filename" : "ProjectorTwo-symbol.svg",
+      "idiom" : "universal"
+    }
+  ]
+}

@@ -43,6 +43,9 @@ bin/
 ### VS Code ###
 .vscode/
 
+### XCode ###
+.swiftpm
+
 ### Mac OS ###
 .DS_Store
 

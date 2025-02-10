@@ -37,7 +37,7 @@ kotlin {
 }
 
 android {
-    namespace = "io.github.qdsfdhvh.iconpark"
+    namespace = "io.github.qdsfdhvh.IconPark"
     compileSdk = 34
     defaultConfig {
         minSdk = 21
@@ -68,9 +68,9 @@ val generateIconParkCodes by tasks.register<GenerateIconParkCodes>("generateIcon
     description = "Generates the icons for park."
 
     shellPath = layout.buildDirectory.file("bin/valkyrie")
-    inputDir = layout.buildDirectory.dir("icons/iconpark/outline")
+    inputDir = layout.buildDirectory.dir("icons/IconPark/outline")
     outputDir = layout.buildDirectory.dir("generated/valkyrie/commonMain/kotlin")
-    packageName = "io.github.qdsfdhvh.iconpark"
+    packageName = "io.github.qdsfdhvh.IconPark"
     iconPackName = "IconParkIcons"
     nestedPackName = "Outline"
 }
@@ -119,8 +119,8 @@ abstract class GenerateIconParkCodes : DefaultTask() {
 }
 
 val generateIconParkSwiftCodes by tasks.register<GenerateIconParkSwiftCodes>("generateIconParkSwiftCodes") {
-    inputDir = layout.buildDirectory.dir("icons/iconpark/outline")
-    outputDir = project.file("Sources/iconpark/Resources/Media.xcassets/")
+    inputDir = layout.buildDirectory.dir("icons/IconPark/outline")
+    outputDir = project.file("spm/Sources/IconPark/Resources/Media.xcassets/")
     warningLogDir = projectDir
 }
 
@@ -212,12 +212,25 @@ abstract class GenerateSwiftIconWorker : WorkAction<GenerateSwiftIconWorker.Para
             isIgnoreExitValue = true
         }
 
-        if (result.exitValue != 0) {
-            val logFile = parameters.waringDir.get().file(svgName).asFile
-            logFile.createNewFile()
-            logFile.bufferedWriter().use {
-                it.write("Can't Convert $svgName")
-            }
+        if (result.exitValue == 0) {
+            // Contents.json
+            val contentJson = """
+                {
+                  "info" : {
+                    "author" : "xcode",
+                    "version" : 1
+                  },
+                  "symbols" : [
+                    {
+                      "filename" : "${svgName}-symbol.svg",
+                      "idiom" : "universal"
+                    }
+                  ]
+                }
+            """.trimIndent()
+            outputDir.resolve("Contents.json").writeText(contentJson)
+        } else {
+            parameters.waringDir.get().file(svgName).asFile.writeText("Can't Convert $svgName")
         }
     }
 }

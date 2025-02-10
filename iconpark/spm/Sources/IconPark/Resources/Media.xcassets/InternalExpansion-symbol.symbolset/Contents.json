@@ -1,0 +1,12 @@
+{
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "symbols" : [
+    {
+      "filename" : "InternalExpansion-symbol.svg",
+      "idiom" : "universal"
+    }
+  ]
+}

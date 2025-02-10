@@ -4,20 +4,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "compose-open-icons",
-    platforms: [.iOS(.v12), .macCatalyst(.v13), .macOS(.v10_15), .tvOS(.v13), .watchOS(.v7)],
+    name: "IconPark",
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "iconpark",
-            targets: ["iconpark"]),
+            name: "IconPark",
+            targets: ["IconPark"]),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "iconpark",
-            path: "iconpark",
+            name: "IconPark",
+            path: "iconpark/spm",
             resources: [
                 .process("Resources")
             ]),
