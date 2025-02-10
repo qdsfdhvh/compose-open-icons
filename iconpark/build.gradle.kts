@@ -1,4 +1,5 @@
 import de.undercouch.gradle.tasks.download.Download
+import kotlin.jvm.java
 
 plugins {
     kotlin("multiplatform")
@@ -102,6 +103,7 @@ abstract class GenerateIconParkCodes : DefaultTask() {
     @TaskAction
     fun run() {
         val codesDir = outputDir.dir(packageName.get().replace(".", "/"))
+
         execOperations.exec {
             commandLine(
                 shellPath.get().asFile.absolutePath,
@@ -115,3 +117,61 @@ abstract class GenerateIconParkCodes : DefaultTask() {
         }
     }
 }
+
+// val generateIconParkSwiftCodes by tasks.register<GenerateIconParkSwiftCodes>("generateIconParkSwiftCodes") {
+//     inputDir = layout.buildDirectory.dir("icons/iconpark/outline")
+//     outputDir = project.file("Resources")
+// }
+//
+// abstract class GenerateIconParkSwiftCodes : DefaultTask() {
+//     @get:InputDirectory
+//     abstract val inputDir: DirectoryProperty
+//
+//     @get:OutputDirectory
+//     abstract val outputDir: DirectoryProperty
+//
+//     @get:Inject
+//     abstract val workerExecutor: WorkerExecutor
+//
+//     @TaskAction
+//     fun run() {
+//         if (!outputDir.get().asFile.exists()) {
+//             outputDir.get().asFile.mkdirs()
+//         }
+//
+//         val childrenFileLists = inputDir.get().asFile.listFiles()
+//         childrenFileLists?.forEach { file ->
+//             if (file.isFile) {
+//                 workerExecutor.noIsolation().submit(GenerateSwiftIconWorker::class.java) {
+//                     inputPath.set(file)
+//                     outputPath.set(outputDir)
+//                 }
+//             }
+//         }
+//     }
+// }
+//
+// abstract class GenerateSwiftIconWorker : WorkAction<GenerateSwiftIconWorker.Parameters> {
+//     interface Parameters : WorkParameters {
+//         val inputPath: Property<File>
+//         val outputPath: DirectoryProperty
+//     }
+//
+//     @get:Inject
+//     abstract val execOperations: ExecOperations
+//
+//     override fun execute() {
+//         val inputPath = parameters.inputPath.get()
+//         val outputPath = parameters.outputPath.get()
+//
+//         println("Convert ${inputPath.absolutePath} to $outputPath")
+//
+//         execOperations.exec {
+//             commandLine(
+//                 "swiftdraw", inputPath.absolutePath,
+//                 "--format", "sfsymbol",
+//                 ">", "$outputPath"
+//             )
+//         }
+//     }
+// }
